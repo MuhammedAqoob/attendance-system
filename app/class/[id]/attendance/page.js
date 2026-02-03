@@ -117,28 +117,110 @@ function AttendanceInner() {
     }
 
     async function save() {
-        setSaving(true);
-        setStatus("");
-        try {
-            const ref = doc(db, "classes", classId, "attendance", dateId);
+    setSaving(true);
+    setStatus("");
+
+    try {
+        const attendanceRef = doc(
+            db,
+            "classes",
+            classId,
+            "attendance",
+            dateId
+        );
+
+        // Get previous attendance
+        const prevSnap = await getDoc(attendanceRef);
+        const prevData = prevSnap.exists() ? prevSnap.data() : null;
+        const prevPresent = new Set(prevData?.present || []);
+
+        // Save new attendance
+        await setDoc(
+            attendanceRef,
+            {
+                present: Array.from(presentSet),
+                updatedAt: serverTimestamp(),
+                teacherId: user.uid,
+                date: dateId,
+                totalStudents: students.length,
+            },
+            { merge: true }
+        );
+
+        // Update summaries
+        for (const s of students) {
+            const studentId = s.id;
+            const summaryRef = doc(
+                db,
+                "classes",
+                classId,
+                "summaries",
+                studentId
+            );
+
+            const sumSnap = await getDoc(summaryRef);
+
+            let present = 0;
+            let absent = 0;
+            let total = 0;
+            let lastDate = null;
+
+            if (sumSnap.exists()) {
+                const data = sumSnap.data();
+                present = data.present || 0;
+                absent = data.absent || 0;
+                total = data.total || 0;
+                lastDate = data.lastDate || null;
+            }
+
+            const wasPresent = prevPresent.has(studentId);
+            const isPresent = presentSet.has(studentId);
+
+            // First save for that day
+            if (lastDate !== dateId) {
+                total += 1;
+                if (isPresent) present += 1;
+                else absent += 1;
+            } else {
+                // Editing same day: adjust counters
+                if (wasPresent && !isPresent) {
+                    present -= 1;
+                    absent += 1;
+                } else if (!wasPresent && isPresent) {
+                    absent -= 1;
+                    present += 1;
+                }
+            }
+
+            const percent =
+                total > 0 ? (present / total) * 100 : 0;
+
             await setDoc(
-                ref,
+                summaryRef,
                 {
-                    present: Array.from(presentSet),
+                    name: s.name || null,
+                    roll: s.rollNo || null,
+                    present,
+                    absent,
+                    total,
+                    percent,
+                    lastStatus: isPresent ? "present" : "absent",
+                    lastDate: dateId,
                     updatedAt: serverTimestamp(),
-                    teacherId: user.uid,
-                    date: dateId,
                 },
                 { merge: true }
             );
-            setStatus("Saved ✅");
-        } catch (e) {
-            setStatus(e?.message || "Save failed");
-        } finally {
-            setSaving(false);
-            setTimeout(() => setStatus(""), 2000);
         }
+
+        setStatus("Saved ✅");
+    } catch (e) {
+        setStatus(e?.message || "Save failed");
+    } finally {
+        setSaving(false);
+        setTimeout(() => setStatus(""), 2000);
     }
+}
+
 
 if (!cls)
   return (
@@ -155,10 +237,10 @@ if (!cls)
             <div className="mx-auto max-w-3xl">
                 <div className="rounded-2xl bg-white p-5 shadow">
                     <button
-                        onClick={() => router.push(`/class/${classId}`)}
+                        onClick={() => router.back()}
                         className="text-sm text-slate-600 hover:underline"
                     >
-                        ← Back to class
+                        ← Back
                     </button>
 
                     <div className="mt-2 flex items-start justify-between gap-3">

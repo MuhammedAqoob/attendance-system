@@ -1,4 +1,5 @@
 "use client";
+
 import { useRouter } from "next/navigation";
 import RequireAuth from "../components/RequireAuth";
 import { useAuth } from "../../lib/auth-context";
@@ -25,7 +26,6 @@ export default function DashboardPage() {
 
 function DashboardInner() {
   const router = useRouter();
-
   const { user } = useAuth();
 
   const [name, setName] = useState("");
@@ -61,6 +61,8 @@ function DashboardInner() {
       subject: subject.trim(),
       teacherId: user.uid,
       createdAt: serverTimestamp(),
+      totalStudents: 0,
+      totalWorkingDays: 0,
     });
 
     setName("");
@@ -68,7 +70,7 @@ function DashboardInner() {
   }
 
   return (
-    <div className="text-black min-h-[100dvh] bg-slate-100 p-4">
+    <div className="text-black min-h-[100dvh] bg-slate-100 p-4 pb-20">
       <div className="mx-auto max-w-3xl">
         <div className="rounded-2xl bg-white p-5 shadow">
           <div className="flex items-start justify-between gap-4">
@@ -88,7 +90,6 @@ function DashboardInner() {
             >
               Logout
             </button>
-
           </div>
 
           <form onSubmit={createClass} className="mt-5 grid gap-3">
@@ -145,6 +146,7 @@ function DashboardInner() {
           )}
         </div>
       </div>
+
     </div>
   );
 }
