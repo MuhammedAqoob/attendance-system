@@ -19,7 +19,14 @@ export default function HistoryPage() {
         const snap = await getDocs(collection(db, 'classes'));
         const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         setClasses(list);
-        if (list.length) setClassId(list[0].id);
+
+        // restore last selected class
+        const saved = sessionStorage.getItem("historyClassId");
+        const found = saved && list.some(c => c.id === saved);
+
+        if (found) setClassId(saved);
+        else if (list.length) setClassId(list[0].id);
+
       } finally {
         setLoading(false);
       }
@@ -45,6 +52,13 @@ export default function HistoryPage() {
     };
     loadDays();
   }, [classId]);
+  
+  useEffect(() => {
+    if (classId) {
+      sessionStorage.setItem("historyClassId", classId);
+    }
+  }, [classId]);
+
 
   return (
     <main className="min-h-screen pb-20 p-6 bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -87,7 +101,7 @@ export default function HistoryPage() {
 
                   {/* Optional link if you want to open that day's record page */}
                   <Link
-                    href={`/class/${classId}/attendance/${d.id}`}
+                    href={`/class/${classId}/attendance`}
                     className="text-blue-700 hover:underline text-sm"
                   >
                     View →
@@ -99,7 +113,7 @@ export default function HistoryPage() {
         </div>
       </div>
 
-     
+
     </main>
   );
 }

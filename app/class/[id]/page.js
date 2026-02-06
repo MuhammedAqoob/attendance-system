@@ -1,6 +1,8 @@
 "use client";
 
 import { db } from "../../../lib/firebase";
+import PercentRing from "../../components/PercentRing";
+
 import {
   collection,
   doc,
@@ -98,7 +100,7 @@ export default function ClassPage() {
 
             {isOwner ? (
               <Link
-                href={`/class/${classId}/manage`}
+                href={`/class/${classId}/manage?from=class`}
                 className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
               >
                 Manage
@@ -131,12 +133,9 @@ export default function ClassPage() {
                       <p className="text-sm text-slate-600">Roll: {s.rollNo}</p>
                     </div>
 
-                    <Link
-                      href={`/class/${classId}/student/${s.id}`}
-                      className="rounded-xl bg-blue-600 px-3 py-2 text-sm font-semibold text-white"
-                    >
-                      {percent}% →
-                    </Link>
+                    <PercentRing percent={Number(percent) || 0} size={56} stroke={6} />
+
+
                   </li>
                 );
               })}

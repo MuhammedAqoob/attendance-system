@@ -16,6 +16,15 @@ import {
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+function todayYYYYMMDD() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+
 export default function DashboardPage() {
   return (
     <RequireAuth>
@@ -25,6 +34,7 @@ export default function DashboardPage() {
 }
 
 function DashboardInner() {
+  const today = todayYYYYMMDD();
   const router = useRouter();
   const { user } = useAuth();
 
@@ -68,6 +78,8 @@ function DashboardInner() {
     setName("");
     setSubject("");
   }
+
+
 
   return (
     <div className="text-black min-h-[100dvh] bg-slate-100 p-4 pb-20">
@@ -114,6 +126,8 @@ function DashboardInner() {
           </form>
         </div>
 
+
+
         <div className="mt-4 rounded-2xl bg-white p-5 shadow">
           <h2 className="text-lg font-bold">Your Classes</h2>
 
@@ -133,12 +147,24 @@ function DashboardInner() {
                       ) : null}
                     </div>
 
-                    <Link
-                      className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
-                      href={`/class/${c.id}`}
-                    >
-                      Open
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white"
+                        href={`/class/${c.id}/attendance`}
+                      >
+                        Attendance
+                      </Link>
+
+                      <Link
+  href={`/class/${c.id}/manage?from=dashboard`}
+  className="rounded-xl border px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+>
+  Manage
+</Link>
+
+                    </div>
+
+
                   </div>
                 </li>
               ))}

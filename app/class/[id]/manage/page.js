@@ -3,6 +3,8 @@
 import RequireAuth from "../../../components/RequireAuth";
 import { useAuth } from "../../../../lib/auth-context";
 import { db } from "../../../../lib/firebase";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+
 import {
   addDoc,
   collection,
@@ -14,7 +16,6 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 
 export default function ManagePage() {
   return (
@@ -25,6 +26,9 @@ export default function ManagePage() {
 }
 
 function ManageInner() {
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from"); // "dashboard" | "class" | null
+
   const { user } = useAuth();
   const params = useParams();
   const router = useRouter();
@@ -100,11 +104,16 @@ function ManageInner() {
       <div className="mx-auto max-w-3xl">
         <div className="rounded-2xl bg-white p-5 shadow">
           <button
-            onClick={() => router.push(`/class/${classId}`)}
+            onClick={() => {
+              if (from === "dashboard") router.push("/dashboard");
+              else router.push(`/class/${classId}`); // default = class page
+            }}
             className="text-sm text-slate-600 hover:underline"
           >
-            ← Back to class
+            ← Back
           </button>
+
+
 
           <h1 className="mt-2 text-2xl font-bold">{cls.name}</h1>
 
