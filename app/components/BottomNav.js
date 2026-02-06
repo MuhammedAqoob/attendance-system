@@ -13,7 +13,7 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
+<nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow">
       <div className="max-w-6xl mx-auto flex justify-around py-2">
         {tabs.map(t => {
           const active = pathname === t.href;

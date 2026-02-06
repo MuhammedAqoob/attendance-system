@@ -25,3 +25,10 @@ body {
     )
     rgb(var(--background-start-rgb));
 }
+
+html, body {
+  min-height: 100%;
+  background: linear-gradient(to bottom right, #f5f3ff, #eff6ff);
+}
+
+
