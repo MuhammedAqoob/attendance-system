@@ -29,6 +29,9 @@ export default function ManagePage() {
 }
 
 function ManageInner() {
+  const [classLoading, setClassLoading] = useState(true);
+  const [studentsLoading, setStudentsLoading] = useState(true);
+
   const searchParams = useSearchParams();
   const from = searchParams.get("from"); // "dashboard" | "class" | null
 
@@ -53,40 +56,64 @@ function ManageInner() {
 
   // Load class + verify ownership
   useEffect(() => {
+    let alive = true;
+
     async function loadClass() {
-      const ref = doc(db, "classes", classId);
-      const snap = await getDoc(ref);
-      if (!snap.exists()) return;
+      setClassLoading(true);
+      try {
+        const ref = doc(db, "classes", classId);
+        const snap = await getDoc(ref);
+        if (!snap.exists()) return;
 
-      const data = snap.data();
-      if (data.teacherId !== user.uid) {
-        router.replace("/dashboard");
-        return;
+        const data = snap.data();
+        if (data.teacherId !== user.uid) {
+          router.replace("/dashboard");
+          return;
+        }
+
+        if (!alive) return;
+
+        setCls({ id: snap.id, ...data });
+        setEditName(data.name || "");
+        setEditSubject(data.subject || "");
+      } finally {
+        if (alive) setClassLoading(false);
       }
-
-      setCls({ id: snap.id, ...data });
-      setEditName(data.name || "");
-      setEditSubject(data.subject || "");
     }
 
     if (user && classId) loadClass();
+
+    return () => {
+      alive = false;
+    };
   }, [user, classId, router]);
+
 
   // Load students
   useEffect(() => {
     if (!user || !classId) return;
+
+    setStudentsLoading(true);
 
     const q = query(
       collection(db, "classes", classId, "students"),
       orderBy("rollNo", "asc")
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setStudents(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setStudents(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        setStudentsLoading(false);
+      },
+      () => {
+        setStudentsLoading(false);
+      }
+    );
 
     return () => unsub();
   }, [user, classId]);
+
 
   async function updateClassInfo(e) {
     e.preventDefault();
@@ -175,15 +202,36 @@ function ManageInner() {
     }
   }
 
-  if (!cls)
+  if (classLoading || !cls) {
     return (
-      <div className="min-h-[100dvh] bg-slate-100 text-slate-900 flex items-center justify-center p-4">
-        <div className="rounded-2xl bg-white px-6 py-4 shadow flex items-center gap-3">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
-          <div className="font-semibold">Loading…</div>
+      <div className="min-h-[100dvh] bg-slate-100 p-4">
+        <div className="mx-auto max-w-3xl space-y-4">
+          {/* Top card skeleton */}
+          <div className="rounded-2xl bg-white p-5 shadow animate-pulse">
+            <div className="h-4 w-20 bg-slate-200 rounded" />
+            <div className="mt-3 h-7 w-48 bg-slate-200 rounded" />
+            <div className="mt-2 h-4 w-64 bg-slate-200 rounded" />
+            <div className="mt-4 h-10 w-56 bg-slate-200 rounded-xl" />
+            <div className="mt-5 grid gap-3">
+              <div className="h-10 bg-slate-200 rounded-xl" />
+              <div className="h-10 bg-slate-200 rounded-xl" />
+            </div>
+          </div>
+
+          {/* Students card skeleton */}
+          <div className="rounded-2xl bg-white p-5 shadow animate-pulse">
+            <div className="h-5 w-40 bg-slate-200 rounded" />
+            <div className="mt-4 space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-14 rounded-xl border bg-slate-50" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
+  }
+
 
   return (
     <div className="min-h-[100dvh] bg-slate-100 p-4">
@@ -268,22 +316,30 @@ function ManageInner() {
         <div className="mt-4 rounded-2xl bg-white p-5 shadow">
           <h2 className="text-lg font-bold">Students ({students.length})</h2>
 
-          {students.length === 0 ? (
+          {studentsLoading ? (
+            <ul className="mt-3 grid gap-2 animate-pulse">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <li key={i} className="flex items-center justify-between rounded-xl border p-3 bg-slate-50">
+                  <div>
+                    <div className="h-4 w-40 bg-slate-200 rounded" />
+                    <div className="mt-2 h-3 w-24 bg-slate-200 rounded" />
+                  </div>
+                  <div className="h-9 w-20 bg-slate-200 rounded-xl" />
+                </li>
+              ))}
+            </ul>
+          ) : students.length === 0 ? (
             <p className="mt-2 text-sm text-slate-600">
               No students yet. Add some above.
             </p>
           ) : (
             <ul className="mt-3 grid gap-2">
               {students.map((s) => (
-                <li
-                  key={s.id}
-                  className="flex items-center justify-between rounded-xl border p-3"
-                >
+                <li key={s.id} className="flex items-center justify-between rounded-xl border p-3">
                   <div>
                     <p className="font-semibold">{s.name}</p>
                     <p className="text-sm text-slate-600">Roll: {s.rollNo}</p>
                   </div>
-
                   <button
                     onClick={() => deleteStudent(s.id)}
                     className="rounded-xl border px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"
@@ -294,6 +350,7 @@ function ManageInner() {
               ))}
             </ul>
           )}
+
         </div>
 
         {/* Danger zone */}

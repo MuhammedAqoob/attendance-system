@@ -14,7 +14,7 @@ function monthKeyFromYYYYMMDD(dateId) {
 function monthLabel(yyyyMm) {
   // "YYYY-MM" -> "Feb 2026"
   const [y, m] = yyyyMm.split("-");
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const idx = Number(m) - 1;
   if (!y || idx < 0 || idx > 11) return yyyyMm;
   return `${months[idx]} ${y}`;
@@ -24,7 +24,9 @@ export default function HistoryPage() {
   const [classes, setClasses] = useState([]);
   const [classId, setClassId] = useState("");
   const [days, setDays] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [daysLoading, setDaysLoading] = useState(true);
+
 
   // month filter
   const [month, setMonth] = useState("all"); // "all" or "YYYY-MM"
@@ -33,7 +35,7 @@ export default function HistoryPage() {
   // load classes
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
+      setClassesLoading(true);
       try {
         const snap = await getDocs(collection(db, "classes"));
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -46,7 +48,7 @@ export default function HistoryPage() {
         if (found) setClassId(saved);
         else if (list.length) setClassId(list[0].id);
       } finally {
-        setLoading(false);
+        setClassesLoading(false);
       }
     };
     load();
@@ -56,7 +58,7 @@ export default function HistoryPage() {
   useEffect(() => {
     const loadDays = async () => {
       if (!classId) return;
-      setLoading(true);
+      setDaysLoading(true);
       try {
         const snap = await getDocs(collection(db, "classes", classId, "attendance"));
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -68,7 +70,7 @@ export default function HistoryPage() {
         // reset month filter when switching class (optional, but feels sane)
         setMonth("all");
       } finally {
-        setLoading(false);
+        setDaysLoading(false);
       }
     };
     loadDays();
@@ -116,7 +118,7 @@ export default function HistoryPage() {
               value={classId}
               onChange={(e) => setClassId(e.target.value)}
               className="px-3 py-2 border rounded-lg text-gray-900"
-              disabled={!classes.length}
+              disabled={classesLoading || !classes.length}
             >
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -144,9 +146,20 @@ export default function HistoryPage() {
         </div>
 
         <div className="bg-white rounded-xl shadow p-5">
-          {loading ? (
-            <div className="text-gray-700">Loading…</div>
+          {daysLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="border rounded-xl p-4 bg-gray-50 animate-pulse"
+                >
+                  <div className="h-5 w-32 bg-gray-200 rounded mb-2" />
+                  <div className="h-4 w-48 bg-gray-200 rounded" />
+                </div>
+              ))}
+            </div>
           ) : days.length === 0 ? (
+
             <div className="text-gray-700">No attendance submitted yet.</div>
           ) : (
             <>

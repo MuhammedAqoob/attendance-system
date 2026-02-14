@@ -10,7 +10,8 @@ export default function AppShell({ children }) {
   const hideNav = pathname === "/login";
 
   return (
-    <div className={hideNav ? "" : "pb-20"}>
+    <div className={`min-h-[100dvh] ${hideNav ? "" : "pb-20"}`}>
+
       {children}
       {!hideNav && <BottomNav />}
     </div>

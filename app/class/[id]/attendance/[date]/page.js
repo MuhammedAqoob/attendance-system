@@ -78,15 +78,20 @@ export default function AttendanceDayPage() {
         [students.length, presentSet]
     );
 
-    if (!cls)
+    if (!cls) {
         return (
-            <div className="min-h-[100dvh] bg-slate-100 text-slate-900 flex items-center justify-center p-4">
-                <div className="rounded-2xl bg-white px-6 py-4 shadow flex items-center gap-3">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900" />
-                    <div className="font-semibold">Loading…</div>
+            <div className="min-h-[100dvh] bg-slate-100 p-4">
+                <div className="mx-auto max-w-3xl space-y-4">
+                    <div className="rounded-2xl bg-white p-5 shadow animate-pulse">
+                        <div className="h-4 w-20 bg-slate-200 rounded" />
+                        <div className="mt-3 h-6 w-48 bg-slate-200 rounded" />
+                        <div className="mt-2 h-4 w-56 bg-slate-200 rounded" />
+                    </div>
                 </div>
             </div>
         );
+    }
+
 
     return (
         <div className="min-h-[100dvh] bg-slate-100 p-4">
@@ -127,7 +132,17 @@ export default function AttendanceDayPage() {
                     </h2>
 
                     {loading ? (
-                        <p className="mt-2 text-sm text-slate-600">Loading attendance…</p>
+                        <ul className="mt-3 grid gap-2 animate-pulse">
+                            {Array.from({ length: 10 }).map((_, i) => (
+                                <li key={i} className="flex items-center justify-between rounded-xl border p-3 bg-slate-50">
+                                    <div>
+                                        <div className="h-4 w-40 bg-slate-200 rounded" />
+                                        <div className="mt-2 h-3 w-24 bg-slate-200 rounded" />
+                                    </div>
+                                    <div className="h-9 w-24 bg-slate-200 rounded-xl" />
+                                </li>
+                            ))}
+                        </ul>
                     ) : students.length === 0 ? (
                         <p className="mt-2 text-sm text-slate-600">No students found.</p>
                     ) : (
@@ -146,8 +161,8 @@ export default function AttendanceDayPage() {
 
                                         <span
                                             className={`rounded-xl px-3 py-2 text-sm font-semibold ${isPresent
-                                                    ? "bg-green-600 text-white"
-                                                    : "bg-red-600 text-white"
+                                                ? "bg-green-600 text-white"
+                                                : "bg-red-600 text-white"
                                                 }`}
                                         >
                                             {isPresent ? "Present" : "Absent"}

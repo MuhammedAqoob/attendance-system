@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import PercentRing from "./components/PercentRing";
 import { useAuth } from "@/lib/auth-context";
@@ -12,8 +12,12 @@ export default function Home() {
 
   const [classes, setClasses] = useState([]);
   const [classId, setClassId] = useState("");
+
   const [topStudents, setTopStudents] = useState([]);
-  const [loading, setLoading] = useState(true);
+
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [topLoading, setTopLoading] = useState(true);
+
 
   const [role, setRole] = useState("guest"); // "teacher" | "student" | "guest"
   const [roleLoading, setRoleLoading] = useState(true);
@@ -31,7 +35,8 @@ export default function Home() {
 
         const q = query(
           collection(db, "classes"),
-          where("teacherId", "==", user.uid)
+          where("teacherId", "==", user.uid),
+          limit(1)
         );
         const snap = await getDocs(q);
 
@@ -50,38 +55,41 @@ export default function Home() {
   // load classes
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
+      setClassesLoading(true);
       try {
         const snap = await getDocs(collection(db, "classes"));
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         setClasses(list);
-        if (list.length) setClassId(list[0].id);
+        if (list.length) setClassId((prev) => prev || list[0].id);
       } finally {
-        setLoading(false);
+        setClassesLoading(false);
       }
     };
     load();
   }, []);
 
+
   // load summaries for selected class, take top 4 by percent
   useEffect(() => {
     const loadTop = async () => {
       if (!classId) return;
-      setLoading(true);
+      setTopLoading(true);
       try {
-        const snap = await getDocs(
-          collection(db, "classes", classId, "summaries")
+        const q = query(
+          collection(db, "classes", classId, "summaries"),
+          orderBy("percent", "desc"),
+          limit(4)
         );
+        const snap = await getDocs(q);
         const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-
-        list.sort((a, b) => (b.percent ?? 0) - (a.percent ?? 0));
-        setTopStudents(list.slice(0, 4));
+        setTopStudents(list);
       } finally {
-        setLoading(false);
+        setTopLoading(false);
       }
     };
     loadTop();
   }, [classId]);
+
 
   const selectedClass = useMemo(
     () => classes.find((c) => c.id === classId),
@@ -105,7 +113,7 @@ export default function Home() {
             value={classId}
             onChange={(e) => setClassId(e.target.value)}
             className="px-3 py-2 border rounded-lg text-gray-900"
-            disabled={!classes.length}
+            disabled={classesLoading || !classes.length}
           >
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
@@ -117,35 +125,48 @@ export default function Home() {
 
         {/* Login status */}
         <div className="mb-6 text-sm text-gray-700">
-          <span className="inline-flex items-center gap-2 rounded-full border bg-white px-3 py-1">
+          <span className="inline-flex min-w-[220px] items-center gap-2 rounded-full border bg-white px-3 py-1">
             <span
-              className={`h-2 w-2 rounded-full ${
-                roleLoading ? "bg-gray-400" : role === "teacher"
-                  ? "bg-green-600"
-                  : role === "student"
+              className={`h-2 w-2 rounded-full ${roleLoading ? "bg-gray-400" : role === "teacher"
+                ? "bg-green-600"
+                : role === "student"
                   ? "bg-blue-600"
                   : "bg-slate-400"
-              }`}
+                }`}
             />
             {roleLabel}
           </span>
         </div>
 
         {/* Classes list */}
+        {/* Classes list */}
         <div className="grid md:grid-cols-2 gap-4 mb-8">
-          {classes.map((c) => (
-            <Link
-              key={c.id}
-              href={`/class/${c.id}`}
-              className="bg-white rounded-xl shadow p-5 hover:shadow-lg transition"
-            >
-              <div className="text-xl font-semibold text-gray-800">
-                {c.name || c.id}
+          {classesLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-xl shadow p-5 h-[96px] animate-pulse"
+              >
+                <div className="h-5 w-40 bg-gray-200 rounded" />
+                <div className="h-4 w-56 bg-gray-200 rounded mt-3" />
               </div>
-              <div className="text-gray-600 mt-1">Tap to view students →</div>
-            </Link>
-          ))}
+            ))
+          ) : (
+            classes.map((c) => (
+              <Link
+                key={c.id}
+                href={`/class/${c.id}`}
+                className="bg-white rounded-xl shadow p-5 hover:shadow-lg transition"
+              >
+                <div className="text-xl font-semibold text-gray-800">
+                  {c.name || c.id}
+                </div>
+                <div className="text-gray-600 mt-1">Tap to view students →</div>
+              </Link>
+            ))
+          )}
         </div>
+
 
         {/* Top students */}
         <div className="bg-white rounded-xl shadow p-5">
@@ -156,8 +177,18 @@ export default function Home() {
             </div>
           </div>
 
-          {loading ? (
-            <div className="text-gray-700">Loading…</div>
+          {topLoading ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="border rounded-xl p-4 bg-gray-50 h-[88px] animate-pulse"
+                >
+                  <div className="h-4 w-24 bg-gray-200 rounded mb-3" />
+                  <div className="h-4 w-40 bg-gray-200 rounded" />
+                </div>
+              ))}
+            </div>
           ) : topStudents.length === 0 ? (
             <div className="text-gray-700">
               No summaries yet. Teacher needs to mark attendance at least once.
@@ -165,20 +196,14 @@ export default function Home() {
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {topStudents.map((s) => (
-                // NOT clickable anymore:
-                <div
-                  key={s.id}
-                  className="border rounded-xl p-4 bg-gray-50"
-                >
+                <div key={s.id} className="border rounded-xl p-4 bg-gray-50">
                   <div className="flex items-center gap-3">
                     <PercentRing percent={s.percent ?? 0} />
                     <div>
                       <div className="font-semibold text-gray-800">
                         {s.name || "Student"}
                       </div>
-                      <div className="text-sm text-gray-600">
-                        {s.roll || s.id}
-                      </div>
+                      <div className="text-sm text-gray-600">{s.roll || s.id}</div>
                       <div className="text-xs text-gray-600 mt-1">
                         P:{s.present ?? 0} A:{s.absent ?? 0} T:{s.total ?? 0}
                       </div>
@@ -188,6 +213,7 @@ export default function Home() {
               ))}
             </div>
           )}
+
         </div>
       </div>
     </main>

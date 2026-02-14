@@ -34,6 +34,29 @@ export default function DashboardPage() {
 }
 
 function DashboardInner() {
+
+  function ClassesSkeleton() {
+    return (
+      <ul className="mt-3 grid gap-2 animate-pulse">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <li key={i} className="rounded-xl border p-3 bg-slate-50">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-2">
+                <div className="h-4 w-48 bg-slate-200 rounded" />
+                <div className="h-3 w-32 bg-slate-200 rounded" />
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-9 w-24 bg-slate-200 rounded-xl" />
+                <div className="h-9 w-24 bg-slate-200 rounded-xl" />
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+
   const today = todayYYYYMMDD();
   const router = useRouter();
   const { user } = useAuth();
@@ -41,26 +64,39 @@ function DashboardInner() {
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [classes, setClasses] = useState([]);
+  const [classesLoading, setClassesLoading] = useState(true);
+
 
   useEffect(() => {
     if (!user) return;
+
+    setClassesLoading(true);
 
     const q = query(
       collection(db, "classes"),
       where("teacherId", "==", user.uid)
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setClasses(
-        snap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }))
-      );
-    });
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setClasses(
+          snap.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }))
+        );
+        setClassesLoading(false);
+      },
+      () => {
+        // if error, stop loading so we don't skeleton forever
+        setClassesLoading(false);
+      }
+    );
 
     return () => unsub();
   }, [user]);
+
 
   async function createClass(e) {
     e.preventDefault();
@@ -131,7 +167,9 @@ function DashboardInner() {
         <div className="mt-4 rounded-2xl bg-white p-5 shadow">
           <h2 className="text-lg font-bold">Your Classes</h2>
 
-          {classes.length === 0 ? (
+          {classesLoading ? (
+            <ClassesSkeleton />
+          ) : classes.length === 0 ? (
             <p className="mt-2 text-sm text-slate-600">
               No classes yet. Create one above.
             </p>
@@ -156,20 +194,18 @@ function DashboardInner() {
                       </Link>
 
                       <Link
-  href={`/class/${c.id}/manage?from=dashboard`}
-  className="rounded-xl border px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
->
-  Manage
-</Link>
-
+                        href={`/class/${c.id}/manage?from=dashboard`}
+                        className="rounded-xl border px-3 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                      >
+                        Manage
+                      </Link>
                     </div>
-
-
                   </div>
                 </li>
               ))}
             </ul>
           )}
+
         </div>
       </div>
 

@@ -15,8 +15,9 @@ export default function RequireAuth({ children }) {
     }
   }, [loading, user, router, pathname]);
 
-  // ✅ Don’t show a full-screen loader (prevents that “sucker loading”)
-  if (loading) return null;
+  // ✅ While checking auth status
+  if (loading) return <div className="min-h-[100dvh]" />;
+
 
   // ✅ While redirecting
   if (!user) return null;

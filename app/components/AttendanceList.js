@@ -19,10 +19,10 @@ export default function AttendanceList() {
         orderBy('timestamp', 'desc'),
         limit(10)
       );
-      
+
       const querySnapshot = await getDocs(q);
       const records = [];
-      
+
       querySnapshot.forEach((doc) => {
         records.push({
           id: doc.id,
@@ -53,7 +53,7 @@ export default function AttendanceList() {
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'N/A';
-    
+
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleString();
   };
@@ -64,10 +64,26 @@ export default function AttendanceList() {
         <h2 className="text-2xl font-semibold mb-4 text-gray-700">
           Recent Attendance
         </h2>
-        <p className="text-gray-500">Loading...</p>
+
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-lg animate-pulse"
+            >
+              <div className="flex-1">
+                <div className="h-4 w-40 bg-gray-200 rounded" />
+                <div className="h-3 w-56 bg-gray-200 rounded mt-2" />
+              </div>
+
+              <div className="h-6 w-20 bg-gray-200 rounded-full" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
+
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-6">
